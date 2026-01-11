@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balam’s English AI - Mtro Luis Balam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .word-btn {
+            display: inline-block;
+            transition: all 0.2s;
+            border-radius: 4px;
+            padding: 0 2px;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .word-btn:hover {
+            color: #4f46e5;
+            background-color: #eef2ff;
+            cursor: help;
+        }
+
+        .word-btn:active {
+            transform: scale(0.95);
+            background-color: #e0e7ff;
+        }
+
+        .word-highlight {
+            background-color: #4f46e5;
+            color: white !important;
+            transform: scale(1.1);
+            box-shadow: 0 4px 6px -1px rgb(79 70 229 / 0.2);
+            z-index: 10;
+        }
+
+        .word-speaking-single {
+            background-color: #10b981;
+            color: white !important;
+            border-radius: 4px;
+        }
+
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="text-slate-900 min-h-screen flex flex-col">
+
+    <!-- HEADER -->
+    <header class="bg-white border-b sticky top-0 z-40 h-16">
+        <div class="max-w-4xl mx-auto px-4 h-full flex items-center justify-between">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="app.reset()">
+                <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-200">
+                    <i data-lucide="graduation-cap" class="text-white w-6 h-6"></i>
+                </div>
+                <h1 class="font-bold text-xl tracking-tight">Balam’s <span class="text-indigo-600">English AI</span></h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="app.toggleSettings()" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="Configuración">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </button>
+                <div id="header-actions" class="hidden">
+                    <button onclick="app.reset()" class="text-sm font-bold text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 transition-all">
+                        Nueva Lección
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- SETTINGS OVERLAY -->
+    <div id="settings-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-sm rounded-[32px] shadow-2xl border border-slate-200 overflow-hidden fade-in">
+            <div class="p-6 space-y-4">
+                <div class="flex justify-between items-center">
+                    <h4 class="font-black text-slate-800 uppercase tracking-widest text-sm">Configuración API</h4>
+                    <button onclick="app.toggleSettings()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-500">Google Gemini API Key</label>
+                    <input id="api-key-input" type="password" placeholder="Pega tu clave aquí..." class="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-indigo-500 outline-none text-sm">
+                    <p class="text-[10px] text-slate-400 leading-relaxed italic">Tu clave se guarda localmente en este navegador y no se comparte con nadie.</p>
+                </div>
+                <button onclick="app.saveApiKey()" class="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                    Guardar Configuración
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main id="app-container" class="max-w-4xl mx-auto px-4 py-8 flex-grow">
+        <!-- Contenido dinámico -->
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="max-w-4xl mx-auto px-4 py-8 border-t border-slate-100 w-full text-center space-y-2">
+        <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">Intelligent English Tutor</p>
+        <p class="text-slate-600 text-sm font-medium">Autor: <span class="text-indigo-600 font-bold">Mtro Luis Balam</span></p>
+    </footer>
+
+    <!-- MODAL DICCIONARIO -->
+    <div id="dictionary-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-sm rounded-[32px] shadow-2xl border border-slate-200 overflow-hidden fade-in">
+            <div class="p-6 space-y-4" id="modal-content"></div>
+            <div class="bg-slate-50 p-4 border-t border-slate-100">
+                <button onclick="app.closeDictionary()" class="w-full py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO PLAYER (HIDDEN) -->
+    <audio id="tts-player" class="hidden"></audio>
+
+    <script>
+        // Modelos utilizados
+        const TEXT_MODEL = "gemini-2.5-flash-preview-09-2025";
+        const TTS_MODEL = "gemini-2.5-flash-preview-tts";
+
+        const app = {
+            apiKey: localStorage.getItem('balam_api_key') || "", 
+            step: 'landing',
+            topic: '',
+            level: 'B1',
+            lessonData: null,
+            chatMessages: [],
+            quizAnswers: {},
+            isProcessing: false,
+            isPlaying: false,
+            isPaused: false,
+            currentWordIndex: -1,
+            pressTimer: null,
+            isLongPress: false,
+
+            init() {
+                this.render();
+                lucide.createIcons();
+                this.setupAudioListeners();
+                
+                // Si no hay API Key, mostrar recordatorio
+                if (!this.apiKey) {
+                    setTimeout(() => this.toggleSettings(), 1000);
+                }
+            },
+
+            toggleSettings() {
+                const modal = document.getElementById('settings-modal');
+                const input = document.getElementById('api-key-input');
+                if (modal.classList.contains('hidden')) {
+                    input.value = this.apiKey;
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                } else {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+                lucide.createIcons();
+            },
+
+            saveApiKey() {
+                const input = document.getElementById('api-key-input');
+                this.apiKey = input.value.trim();
+                localStorage.setItem('balam_api_key', this.apiKey);
+                this.toggleSettings();
+                this.render();
+            },
+
+            setupAudioListeners() {
+                const player = document.getElementById('tts-player');
+                player.ontimeupdate = () => {
+                    if (!this.lessonData || this.step !== 'lesson' || player.duration <= 2) return;
+                    const words = this.lessonData.textEn.split(/\s+/).filter(w => w.length > 0);
+                    const progress = player.currentTime / player.duration;
+                    const index = Math.floor(progress * words.length);
+                    if (index !== this.currentWordIndex) {
+                        this.currentWordIndex = index;
+                        this.updateHighlights();
+                    }
+                };
+                player.onended = () => {
+                    this.isPlaying = false;
+                    this.isPaused = false;
+                    this.currentWordIndex = -1;
+                    this.updateHighlights(); 
+                    this.render();
+                };
+                player.onpause = () => { this.isPaused = true; this.render(); };
+                player.onplay = () => { this.isPaused = false; this.render(); };
+            },
+
+            updateHighlights() {
+                const wordElements = document.querySelectorAll('.interactive-word');
+                wordElements.forEach((el, idx) => {
+                    if (idx === this.currentWordIndex) el.classList.add('word-highlight');
+                    else el.classList.remove('word-highlight');
+                });
+            },
+
+            reset() {
+                const player = document.getElementById('tts-player');
+                player.pause();
+                player.src = "";
+                this.step = 'landing';
+                this.topic = '';
+                this.lessonData = null;
+                this.chatMessages = [];
+                this.quizAnswers = {};
+                this.isPlaying = false;
+                this.isPaused = false;
+                this.currentWordIndex = -1;
+                this.render();
+            },
+
+            setStep(step) {
+                this.step = step;
+                this.render();
+            },
+
+            async callGemini(prompt, systemInstruction = "", isJson = false) {
+                if (!this.apiKey) {
+                    this.toggleSettings();
+                    throw new Error("API Key missing");
+                }
+                let retries = 0;
+                const maxRetries = 5;
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${this.apiKey}`;
+                const body = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    systemInstruction: { parts: [{ text: systemInstruction }] }
+                };
+                if (isJson) body.generationConfig = { responseMimeType: "application/json" };
+
+                while (retries < maxRetries) {
+                    try {
+                        const resp = await fetch(url, { method: 'POST', body: JSON.stringify(body) });
+                        const data = await resp.json();
+                        if (data.error) throw new Error(data.error.message);
+                        const resultText = data.candidates[0].content.parts[0].text;
+                        return isJson ? JSON.parse(resultText) : resultText;
+                    } catch (e) {
+                        retries++;
+                        if (retries >= maxRetries) throw e;
+                        await new Promise(r => setTimeout(r, Math.pow(2, retries) * 1000));
+                    }
+                }
+            },
+
+            async speakWord(word, element) {
+                if (!this.apiKey) return this.toggleSettings();
+                const player = document.getElementById('tts-player');
+                player.pause();
+                element.classList.add('word-speaking-single');
+                try {
+                    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${TTS_MODEL}:generateContent?key=${this.apiKey}`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `Say clearly and slowly: ${word}` }] }],
+                            generationConfig: {
+                                responseModalities: ["AUDIO"],
+                                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+                            }
+                        })
+                    });
+                    const result = await resp.json();
+                    const pcmBase64 = result.candidates[0].content.parts[0].inlineData.data;
+                    const blob = this.pcmToWav(pcmBase64, 24000);
+                    const url = URL.createObjectURL(blob);
+                    player.src = url;
+                    await player.play();
+                    player.onended = () => {
+                        element.classList.remove('word-speaking-single');
+                        URL.revokeObjectURL(url);
+                        this.setupAudioListeners(); 
+                    };
+                } catch (e) { element.classList.remove('word-speaking-single'); }
+            },
+
+            async toggleSpeak() {
+                if (!this.apiKey) return this.toggleSettings();
+                const player = document.getElementById('tts-player');
+                if (this.isPlaying) {
+                    player.paused ? player.play() : player.pause();
+                    return;
+                }
+                this.isPlaying = true;
+                this.isPaused = false;
+                this.render(); 
+                try {
+                    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${TTS_MODEL}:generateContent?key=${this.apiKey}`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `Say clearly: ${this.lessonData.textEn}` }] }],
+                            generationConfig: {
+                                responseModalities: ["AUDIO"],
+                                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+                            }
+                        })
+                    });
+                    const result = await resp.json();
+                    const pcmBase64 = result.candidates[0].content.parts[0].inlineData.data;
+                    const blob = this.pcmToWav(pcmBase64, 24000);
+                    const url = URL.createObjectURL(blob);
+                    player.src = url;
+                    await player.play();
+                } catch (e) { this.isPlaying = false; this.render(); }
+            },
+
+            pcmToWav(base64Pcm, sampleRate) {
+                const binaryString = atob(base64Pcm);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+                const buffer = bytes.buffer;
+                const wavHeader = new ArrayBuffer(44);
+                const view = new DataView(wavHeader);
+                const writeString = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+                writeString(0, 'RIFF');
+                view.setUint32(4, 36 + buffer.byteLength, true);
+                writeString(8, 'WAVE');
+                writeString(12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, 1, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * 2, true);
+                view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true);
+                writeString(36, 'data');
+                view.setUint32(40, buffer.byteLength, true);
+                return new Blob([wavHeader, buffer], { type: 'audio/wav' });
+            },
+
+            startPress(el, word) {
+                this.isLongPress = false;
+                this.pressTimer = setTimeout(() => {
+                    this.isLongPress = true;
+                    this.speakWord(word, el);
+                }, 500); 
+            },
+
+            endPress() { clearTimeout(this.pressTimer); },
+
+            handleWordAction(word) { if (!this.isLongPress) this.showDictionary(word); },
+
+            async startLesson() {
+                const input = document.getElementById('topic-input');
+                this.topic = input ? input.value : this.topic;
+                if (!this.topic) return;
+                this.setStep('generating');
+                try {
+                    const system = `Expert English teacher. Generate JSON lesson for level ${this.level}: {title, textEn, textEs, vocabulary[], quiz[]}`;
+                    this.lessonData = await this.callGemini(`Topic: ${this.topic}. Level: ${this.level}`, system, true);
+                    this.chatMessages = [{ role: 'assistant', content: `Ready! Let's learn about "${this.lessonData.title}". Tip: Hold a word to listen to its pronunciation!` }];
+                    this.setStep('lesson');
+                } catch (e) { alert(e.message); this.reset(); }
+            },
+
+            async showDictionary(word) {
+                const modal = document.getElementById('dictionary-modal');
+                const content = document.getElementById('modal-content');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                content.innerHTML = `<div class="py-10 text-center"><i data-lucide="loader" class="animate-spin mx-auto text-indigo-600"></i></div>`;
+                lucide.createIcons();
+                try {
+                    const res = await this.callGemini(`Word: ${word}`, `Dictionary JSON: {meaning, translation, example}`, true);
+                    content.innerHTML = `
+                        <div><h4 class="text-2xl font-black text-slate-800 capitalize">"${word}"</h4></div>
+                        <div class="space-y-4">
+                            <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                                <div class="text-xs font-black text-indigo-400 uppercase mb-1">Traducción</div>
+                                <div class="text-lg font-bold text-indigo-700">${res.translation}</div>
+                            </div>
+                            <p class="text-sm text-slate-600">${res.meaning}</p>
+                            <p class="text-sm italic text-slate-500 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">"${res.example}"</p>
+                        </div>
+                    `;
+                } catch (e) { content.innerHTML = "Error"; }
+                lucide.createIcons();
+            },
+
+            closeDictionary() { document.getElementById('dictionary-modal').classList.add('hidden'); },
+
+            async sendMessage() {
+                const input = document.getElementById('chat-input');
+                const text = input.value;
+                if (!text || this.isProcessing) return;
+                this.chatMessages.push({ role: 'user', content: text });
+                input.value = '';
+                this.isProcessing = true;
+                this.render();
+                try {
+                    const res = await this.callGemini(`Chat context: ${JSON.stringify(this.chatMessages.slice(-5))}`, `Teacher (Level ${this.level}). Correct grammar then reply.`);
+                    this.chatMessages.push({ role: 'assistant', content: res });
+                } catch (e) {} finally { this.isProcessing = false; this.render(); }
+            },
+
+            formatInteractiveText(text) {
+                let wordIdx = 0;
+                return text.split(/(\s+)/).map(part => {
+                    if (/\s+/.test(part)) return part;
+                    const punc = part.replace(/[a-zA-ZáéíóúÁÉÍÓÚñÑ']/g, "");
+                    const actualWord = part.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑ']+/)?.[0] || "";
+                    if (!actualWord) return part;
+                    const html = `<button onmousedown="app.startPress(this, '${actualWord}')" onmouseup="app.endPress()" onmouseleave="app.endPress()" ontouchstart="app.startPress(this, '${actualWord}')" ontouchend="app.endPress()" onclick="app.handleWordAction('${actualWord}')" data-idx="${wordIdx}" class="interactive-word word-btn font-medium">${actualWord}</button>${punc}`;
+                    wordIdx++;
+                    return html;
+                }).join('');
+            },
+
+            render() {
+                const container = document.getElementById('app-container');
+                const actions = document.getElementById('header-actions');
+                
+                if (this.step === 'landing') {
+                    actions.classList.add('hidden');
+                    container.innerHTML = `
+                        <div class="flex flex-col items-center space-y-10 py-12 fade-in">
+                            <div class="text-center space-y-4 max-w-2xl">
+                                <h2 class="text-4xl font-extrabold text-slate-900 sm:text-5xl tracking-tighter">Aprende Inglés <span class="text-indigo-600 underline decoration-indigo-200 decoration-8 underline-offset-8">con IA.</span></h2>
+                                <p class="text-lg text-slate-600">Ingresa un tema y comienza tu lección interactiva personalizada por Balam AI.</p>
+                            </div>
+                            <div class="w-full max-w-xl bg-white p-8 rounded-[40px] border border-slate-200 shadow-xl space-y-8">
+                                ${!this.apiKey ? `<div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-700 text-xs font-bold flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Primero configura tu API Key en el icono de engranaje ⚙️</div>` : ''}
+                                <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                                    ${['A1', 'A2', 'B1', 'B2', 'C1'].map(lvl => `<button onclick="app.level = '${lvl}'; app.render();" class="p-2 rounded-xl border-2 text-xs font-black ${this.level === lvl ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-50 bg-slate-50 hover:border-slate-200'}">${lvl}</button>`).join('')}
+                                </div>
+                                <div class="relative">
+                                    <input id="topic-input" type="text" value="${this.topic}" placeholder="Ej: Viajes, Gaming, IA..." class="w-full p-5 pr-14 rounded-3xl border-2 border-slate-100 focus:border-indigo-500 outline-none text-lg">
+                                    <button onclick="app.startLesson()" class="absolute right-2.5 top-2.5 bottom-2.5 bg-indigo-600 text-white px-4 rounded-2xl hover:bg-indigo-700 active:scale-95 transition-all"><i data-lucide="chevron-right"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (this.step === 'generating') {
+                    container.innerHTML = `<div class="flex flex-col items-center justify-center py-24 space-y-6 fade-in"><div class="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div><h3 class="text-xl font-bold">Balam AI está redactando...</h3></div>`;
+                } else if (this.step === 'lesson') {
+                    actions.classList.remove('hidden');
+                    const audioBtnIcon = !this.isPlaying ? 'play' : (this.isPaused ? 'play' : 'pause');
+                    const audioBtnText = !this.isPlaying ? 'Escuchar Texto' : (this.isPaused ? 'Continuar' : 'Pausar Lectura');
+                    container.innerHTML = `
+                        <div class="space-y-8 fade-in">
+                            <div class="bg-white p-8 md:p-10 rounded-[48px] border border-slate-200 shadow-sm space-y-8">
+                                <div class="flex flex-col sm:flex-row justify-between gap-6 border-b pb-8 items-center">
+                                    <div>
+                                        <span class="bg-indigo-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase">Nivel ${this.level}</span>
+                                        <h2 class="text-3xl font-black mt-2 leading-tight">${this.lessonData.title}</h2>
+                                    </div>
+                                    <button onclick="app.toggleSpeak()" class="flex items-center gap-3 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl hover:bg-indigo-700 active:scale-95 transition-all min-w-[190px] justify-center">
+                                        <i data-lucide="${audioBtnIcon}" class="w-5 h-5"></i><span>${audioBtnText}</span>
+                                    </button>
+                                </div>
+                                <div class="grid md:grid-cols-2 gap-12">
+                                    <div class="space-y-4">
+                                        <div class="text-indigo-600 font-black text-[11px] uppercase tracking-widest flex items-center gap-2"><i data-lucide="volume-1" class="w-3 h-3"></i> Manten presionado para escuchar</div>
+                                        <div id="lesson-text-container" class="text-xl leading-[1.6] text-slate-800 font-medium">${this.formatInteractiveText(this.lessonData.textEn)}</div>
+                                    </div>
+                                    <div class="md:border-l md:pl-12 space-y-4">
+                                        <div class="text-slate-400 font-black text-[11px] uppercase tracking-widest">Español</div>
+                                        <div class="text-lg leading-relaxed text-slate-500 italic">${this.lessonData.textEs}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-center"><button onclick="app.setStep('chat')" class="bg-slate-900 text-white px-12 py-6 rounded-[32px] font-black text-xl hover:bg-black shadow-2xl">¡Practicar Chat!</button></div>
+                        </div>
+                    `;
+                    this.updateHighlights();
+                } else if (this.step === 'chat') {
+                    container.innerHTML = `
+                        <div class="bg-white rounded-[40px] border border-slate-200 shadow-2xl overflow-hidden h-[600px] flex flex-col fade-in">
+                            <div class="p-6 bg-indigo-600 text-white flex justify-between items-center"><div class="font-black">Balam Tutor AI</div><button onclick="app.setStep('quiz')" class="bg-white text-indigo-600 px-4 py-2 rounded-xl text-xs font-black">Tomar Test</button></div>
+                            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 chat-scroll">
+                                ${this.chatMessages.map(msg => `<div class="flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}"><div class="max-w-[85%] p-4 rounded-3xl ${msg.role === 'user' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white border'} text-sm leading-relaxed">${msg.content}</div></div>`).join('')}
+                            </div>
+                            <div class="p-4 border-t flex gap-2"><input id="chat-input" type="text" placeholder="Escribe..." class="flex-1 p-3 rounded-2xl border outline-none" onkeydown="if(event.key==='Enter') app.sendMessage()"><button onclick="app.sendMessage()" class="bg-indigo-600 text-white p-3 rounded-2xl"><i data-lucide="send"></i></button></div>
+                        </div>
+                    `;
+                    document.getElementById('chat-box').scrollTop = 99999;
+                } else if (this.step === 'quiz') {
+                    container.innerHTML = `<div class="max-w-xl mx-auto space-y-8 fade-in">
+                        <div class="text-center"><h3 class="text-2xl font-black">Test de Comprensión</h3></div>
+                        ${this.lessonData.quiz.map((q, idx) => `
+                            <div class="bg-white p-6 rounded-3xl border">
+                                <p class="font-black mb-4">${idx+1}. ${q.question}</p>
+                                <div class="grid gap-2">${q.options.map((opt, oIdx) => `<button onclick="app.quizAnswers[${idx}]=${oIdx}; app.render();" class="w-full p-4 text-left rounded-xl border-2 font-bold ${this.quizAnswers[idx]===oIdx ? 'border-indigo-600 bg-indigo-50' : 'hover:border-slate-200'}">${opt}</button>`).join('')}</div>
+                            </div>
+                        `).join('')}
+                        <button onclick="app.setStep('result')" class="w-full bg-slate-900 text-white py-4 rounded-3xl font-black disabled:opacity-50" ${Object.keys(this.quizAnswers).length < 5 ? 'disabled' : ''}>Ver Resultados</button>
+                    </div>`;
+                } else if (this.step === 'result') {
+                    container.innerHTML = `<div class="bg-white p-12 rounded-[56px] text-center shadow-xl space-y-8 fade-in"><div class="flex justify-center"><i data-lucide="award" class="w-20 h-20 text-indigo-600"></i></div><h2 class="text-4xl font-black">¡Lección Finalizada!</h2><p class="text-slate-500">Has completado con éxito la lección diseñada por Balam AI.</p><button onclick="app.reset()" class="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-lg shadow-indigo-100 transition-all hover:scale-105">Nueva Lección</button></div>`;
+                }
+                lucide.createIcons();
+            }
+        };
+
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
+
+
